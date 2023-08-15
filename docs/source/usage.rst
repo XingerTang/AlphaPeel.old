@@ -169,7 +169,7 @@ The sequence data file is in a similar Sequence data is given in a similar forma
 Example: ::
 
   id1 4 0 0 7 # Reference allele for id1
-  id1 0 3 0 0 # Alternative allele for id2
+  id1 0 3 0 0 # Alternative allele for id1
   id2 1 3 4 3
   id2 1 1 6 2
   id3 0 3 0 1
