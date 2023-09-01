@@ -14,7 +14,9 @@ from ..tinyhouse import HaplotypeOperations
 #####################################################################
 
 
-def createPeelingInfo(pedigree, args, createSeg=True, phaseFounder=False):
+def createPeelingInfo(
+    pedigree, args, createSeg=True, phaseFounder=False, noPenetrance=False
+):
     # NOTE: createSeg is added as an option to decrease memory usage during the single locus peeling steps.
     nLoci = pedigree.nLoci
 
@@ -50,29 +52,30 @@ def createPeelingInfo(pedigree, args, createSeg=True, phaseFounder=False):
             peelingInfo.isSexChrom and ind.sex == 0
         )  # This is the sex chromosome and the individual is male.
 
-        peelingInfo.penetrance[ind.idn, :, :] = ProbMath.getGenotypeProbabilities(
-            peelingInfo.nLoci,
-            ind.genotypes,
-            ind.reads,
-            peelingInfo.genoError,
-            peelingInfo.seqError,
-            sexChromFlag,
-        )
+        if not noPenetrance:
+            peelingInfo.penetrance[ind.idn, :, :] = ProbMath.getGenotypeProbabilities(
+                peelingInfo.nLoci,
+                ind.genotypes,
+                ind.reads,
+                peelingInfo.genoError,
+                peelingInfo.seqError,
+                sexChromFlag,
+            )
 
-        # Set the genotyping/read status for each individual. This will be used for, e.g., estimating the minor allele frequency.
-        if ind.genotypes is not None:
-            setGenotypeStatusGenotypes(ind.idn, ind.genotypes, peelingInfo)
+            # Set the genotyping/read status for each individual. This will be used for, e.g., estimating the minor allele frequency.
+            if ind.genotypes is not None:
+                setGenotypeStatusGenotypes(ind.idn, ind.genotypes, peelingInfo)
 
-        if ind.reads is not None:
-            setGenotypeStatusReads(ind.idn, ind.reads[0], ind.reads[1], peelingInfo)
+            if ind.reads is not None:
+                setGenotypeStatusReads(ind.idn, ind.reads[0], ind.reads[1], peelingInfo)
 
-        if ind.isGenotypedFounder() and phaseFounder and ind.genotypes is not None:
-            loci = getHetMidpoint(ind.genotypes)
-            if loci is not None:
-                e = args.error
-                peelingInfo.penetrance[ind.idn, :, loci] = np.array(
-                    [e / 3, e / 3, 1 - e, e / 3], dtype=np.float32
-                )
+            if ind.isGenotypedFounder() and phaseFounder and ind.genotypes is not None:
+                loci = getHetMidpoint(ind.genotypes)
+                if loci is not None:
+                    e = args.error
+                    peelingInfo.penetrance[ind.idn, :, loci] = np.array(
+                        [e / 3, e / 3, 1 - e, e / 3], dtype=np.float32
+                    )
 
     if args.penetrance is not None:
         if args.sexchrom:
@@ -185,6 +188,12 @@ spec["segregation"] = optional(float32[:, :, :])
 spec["pointSeg"] = optional(
     float32[:, :, :]
 )  # I think we don't use this any more. Potentially could be dropped.
+spec["forwardSeg"] = optional(float32[:, :, :])
+spec["backwardSeg"] = optional(float32[:, :, :])
+
+spec["recomb"] = optional(float32[:, :])  # nInd x nLoci
+spec["recomb_mat"] = optional(float32[:, :])  # nInd x nLoci
+spec["recomb_pat"] = optional(float32[:, :])  # nInd x nLoci
 
 # Family terms. Each will be nFam x 4 x nLoci
 spec["posteriorSire_minusFam"] = float32[:, :, :]
@@ -251,6 +260,15 @@ class jit_peelingInformation(object):
             self.pointSeg = np.full(
                 (self.nInd, 4, self.nLoci), baseValue, dtype=np.float32
             )
+            self.forwardSeg = np.full(
+                (self.nInd, 4, self.nLoci), baseValue, dtype=np.float32
+            )
+            self.backwardSeg = np.full(
+                (self.nInd, 4, self.nLoci), baseValue, dtype=np.float32
+            )
+            self.recomb = np.full((self.nInd, self.nLoci - 1), 0, dtype=np.float32)
+            self.recomb_mat = np.full((self.nInd, self.nLoci - 1), 0, dtype=np.float32)
+            self.recomb_pat = np.full((self.nInd, self.nLoci - 1), 0, dtype=np.float32)
         else:
             self.pointSeg = None
 

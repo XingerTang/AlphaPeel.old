@@ -20,7 +20,7 @@ def runPeelingCycles(pedigree, peelingInfo, args, singleLocusMode=False):
 
     for i in range(args.ncycles):
         print("Cycle ", i)
-        peelingCycle(pedigree, peelingInfo, args=args, singleLocusMode=singleLocusMode)
+        peelingCycle(pedigree, peelingInfo, args=args, singleLocusMode=True)
         peelingInfo.iteration += 1
 
         # esttransitions is been disabled.
@@ -30,6 +30,9 @@ def runPeelingCycles(pedigree, peelingInfo, args, singleLocusMode=False):
 
         if args.esterrors:
             PeelingUpdates.updatePenetrance(pedigree, peelingInfo)
+
+    peelingCycle(pedigree, peelingInfo, args=args, singleLocusMode=False)
+    Peeling.setRecombinations(pedigree, peelingInfo)
 
 
 def peelingCycle(pedigree, peelingInfo, args, singleLocusMode=False):
@@ -49,10 +52,17 @@ def peelingCycle(pedigree, peelingInfo, args, singleLocusMode=False):
                     repeat(Peeling.PEEL_DOWN),
                     repeat(peelingInfo),
                     repeat(singleLocusMode),
+                    repeat(args.no_post),
                 )
         else:
             for family in jit_families:
-                Peeling.peel(family, Peeling.PEEL_DOWN, peelingInfo, singleLocusMode)
+                Peeling.peel(
+                    family,
+                    Peeling.PEEL_DOWN,
+                    peelingInfo,
+                    singleLocusMode,
+                    args.no_post,
+                )
 
     for index, generation in enumerate(reversed(pedigree.generations)):
         print("Peeling Up, Generation", len(pedigree.generations) - index - 1)
@@ -68,10 +78,13 @@ def peelingCycle(pedigree, peelingInfo, args, singleLocusMode=False):
                     repeat(Peeling.PEEL_UP),
                     repeat(peelingInfo),
                     repeat(singleLocusMode),
+                    repeat(args.no_post),
                 )
         else:
             for family in jit_families:
-                Peeling.peel(family, Peeling.PEEL_UP, peelingInfo, singleLocusMode)
+                Peeling.peel(
+                    family, Peeling.PEEL_UP, peelingInfo, singleLocusMode, args.no_post
+                )
 
         sires = set()
         dams = set()
@@ -365,6 +378,9 @@ def getArgs():
         required=False,
         help="A flag to that this is a sex chromosome. Sex needs to be given in the pedigree file. This is currently an experimental option.",
     )
+    peeling_control_parser.add_argument(
+        "-no_post", action="store_true", required=False, help=""
+    )
 
     singleLocus_parser = parser.add_argument_group("Hybrid peeling arguments")
     singleLocus_parser.add_argument(
@@ -396,12 +412,14 @@ def getArgs():
 def main():
     args = getArgs()
     pedigree = Pedigree.Pedigree()
+    print("reading in data")
     InputOutput.readInPedigreeFromInputs(pedigree, args)
 
     singleLocusMode = args.runtype == "single"
     if args.runtype == "multi" and args.segfile:
         print("Running in multi-locus mode, external segfile ignored")
 
+    print("Creating peeling info")
     peelingInfo = PeelingInfo.createPeelingInfo(
         pedigree, args, phaseFounder=(not args.nophasefounders)
     )
@@ -411,6 +429,19 @@ def main():
         generateSingleLocusSegregation(peelingInfo, pedigree, args)
     runPeelingCycles(pedigree, peelingInfo, args, singleLocusMode=singleLocusMode)
 
+    # InputOutput.writeIdnIndexedMatrix(pedigree, peelingInfo.recomb, args.out + ".recomb", digits = 6)
+    # InputOutput.writeIdnIndexedMatrix(pedigree, peelingInfo.recomb_mat, args.out + ".recomb_mat", digits = 6)
+    # InputOutput.writeIdnIndexedMatrix(pedigree, peelingInfo.recomb_pat, args.out + ".recomb_pat", digits = 6)
+    InputOutput.writeIdnIndexedMatrix(
+        pedigree, peelingInfo.recomb, args.out + ".recomb"
+    )
+    InputOutput.writeIdnIndexedMatrix(
+        pedigree, peelingInfo.recomb_mat, args.out + ".recomb_mat"
+    )
+    InputOutput.writeIdnIndexedMatrix(
+        pedigree, peelingInfo.recomb_pat, args.out + ".recomb_pat"
+    )
+
     PeelingIO.writeGenotypes(pedigree, genoProbFunc=peelingInfo.getGenoProbs)
     if not args.no_params:
         PeelingIO.writeOutParamaters(peelingInfo)
@@ -418,6 +449,9 @@ def main():
         InputOutput.writeIdnIndexedMatrix(
             pedigree, peelingInfo.segregation, args.out + ".seg"
         )
+    InputOutput.writeIdnIndexedMatrix(
+        pedigree, peelingInfo.pointSeg, args.out + ".pointSeg"
+    )
 
 
 if __name__ == "__main__":
