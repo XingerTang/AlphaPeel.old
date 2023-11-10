@@ -148,10 +148,9 @@ genotypesObs_w_error <- generateGenoErr(geno = genotypesObs, error = genoError)
 
 # ----- Realised allele frequency in the base population -----
 
-maf <- matrix(data = colMeans(x = genotypes[1:nIndPerGen, ]) / 2,
+alt_allele_prob <- matrix(data = colMeans(x = genotypes[1:nIndPerGen, ]) / 2,
               nrow = nLociAll, ncol = 1)
-summary(maf[, 1])
-hist(maf)
+summary(alt_allele_prob[, 1])
 
 # ----- Realised genotype error rate -----
 
@@ -301,7 +300,7 @@ write.table(x = geno_error, file = "true-genoError.txt",
             row.names = FALSE, col.names = FALSE, quote = FALSE)
 write.table(x = seq_error, file = "true-seqError.txt", 
             row.names = FALSE, col.names = FALSE, quote = FALSE)
-write.table(x = maf, file = "true-maf.txt", 
+write.table(x = alt_allele_prob, file = "true-alt_allele_prob.txt", 
             row.names = FALSE, col.names = FALSE, quote = FALSE)
 write.table(x = segregation, "true-seg_prob.txt", 
             row.names = FALSE, col.names = FALSE, quote = FALSE)

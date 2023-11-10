@@ -29,7 +29,9 @@ def generate_output_path(name):
     )
 
 
-def generate_command(sim_path, runType, estmaf, esterrors, seqfile, output_path):
+def generate_command(
+    sim_path, runType, est_alt_allele_prob, esterrors, seqfile, output_path
+):
     command = "AlphaPeel "
     input_file = ["pedigree"]
     arguments = {
@@ -45,8 +47,8 @@ def generate_command(sim_path, runType, estmaf, esterrors, seqfile, output_path)
         "phased_geno_prob": None,
     }
 
-    if estmaf:
-        arguments["estmaf"] = None
+    if est_alt_allele_prob:
+        arguments["est_alt_allele_prob"] = None
     if esterrors:
         arguments["esterrors"] = None
     if seqfile:
@@ -192,27 +194,29 @@ def assess_peeling(sim_path, get_params, output_path, name, runType):
 
 
 @pytest.mark.parametrize(
-    "runType, estmaf, esterrors, seqfile",
+    "runType, est_alt_allele_prob, esterrors, seqfile",
     [
         ("single", None, None, None),
-        ("single", "estmaf", None, None),
+        ("single", "est_alt_allele_prob", None, None),
         ("multi", None, None, None),
-        ("multi", "estmaf", None, None),
-        ("multi", "estmaf", "esterrors", None),
+        ("multi", "est_alt_allele_prob", None, None),
+        ("multi", "est_alt_allele_prob", "esterrors", None),
         ("multi", None, None, "seqfile"),
-        ("multi", "estmaf", None, "seqfile"),
-        ("multi", "estmaf", "esterrors", "seqfile"),
+        ("multi", "est_alt_allele_prob", None, "seqfile"),
+        ("multi", "est_alt_allele_prob", "esterrors", "seqfile"),
         ("hybrid", None, None, None),
         ("hybrid", None, None, "seqfile"),
     ],
 )
-def test_accu(get_params, runType, estmaf, esterrors, seqfile, sim_path, benchmark):
+def test_accu(
+    get_params, runType, est_alt_allele_prob, esterrors, seqfile, sim_path, benchmark
+):
     name = "_".join(
         [
             param
             for param in filter(
                 lambda param: True if param else False,
-                [runType, estmaf, esterrors, seqfile],
+                [runType, est_alt_allele_prob, esterrors, seqfile],
             )
         ]
     )
@@ -227,7 +231,7 @@ def test_accu(get_params, runType, estmaf, esterrors, seqfile, sim_path, benchma
                 param
                 for param in filter(
                     lambda param: True if param else False,
-                    ["multi", estmaf, esterrors, seqfile],
+                    ["multi", est_alt_allele_prob, esterrors, seqfile],
                 )
             ]
         )
@@ -245,7 +249,7 @@ def test_accu(get_params, runType, estmaf, esterrors, seqfile, sim_path, benchma
         np.savetxt(segfile_path, seg[:, subset])
 
     command = generate_command(
-        sim_path, runType, estmaf, esterrors, seqfile, output_path
+        sim_path, runType, est_alt_allele_prob, esterrors, seqfile, output_path
     )
 
     benchmark(os.system, command)

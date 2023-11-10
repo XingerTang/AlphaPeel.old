@@ -137,7 +137,7 @@ class TestClass:
         files = [
             "dosage.txt",
             "seg_prob.txt",
-            "maf",
+            "alt_allele_prob.txt",
             "genoError",
             "seqError",
             "phased_geno_prob.txt",
@@ -282,7 +282,7 @@ class TestClass:
 
     def test_est(self):
         """
-        Check -esterrors, -estmaf, -length just to make sure it runs.
+        Check -esterrors, -est_alt_allele_prob, -length just to make sure it runs.
         """
         self.test_name = "test_est"
         self.prepare_path()
@@ -292,7 +292,7 @@ class TestClass:
         self.arguments = {"runType": "multi", "geno_threshold": ".1", "geno": None}
         self.output_file_to_check = "geno_0.3333333333333333"
 
-        for self.test_cases in ["esterror", "estmaf", "length"]:
+        for self.test_cases in ["esterror", "est_alt_allele_prob", "length"]:
             # TODO estrecombrate instead of just adding length
             if self.test_cases != "length":
                 self.arguments[self.test_cases] = None
